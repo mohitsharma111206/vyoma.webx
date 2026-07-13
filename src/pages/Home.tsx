@@ -1,7 +1,6 @@
 import Hero from "../sections/Hero";
 import Services from "../sections/Services";
-import Process from "../sections/Process";
-import TechStack from "../sections/TechStack";
+
 import Testimonials from "../sections/Testimonials";
 import FAQCTA from "../sections/FAQCTA";
 import Contact from "../sections/Contact";

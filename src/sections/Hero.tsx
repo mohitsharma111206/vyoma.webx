@@ -25,7 +25,7 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
   const [isScrolledDown, setIsScrolledDown] = useState(false);
 
   const totalFrames = 300;
-  const framesRef = useRef<(HTMLCanvasElement | ImageBitmap | null)[]>(new Array(totalFrames).fill(null));
+  const framesRef = useRef<(HTMLCanvasElement | ImageBitmap | HTMLImageElement | null)[]>(new Array(totalFrames).fill(null));
 
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const lastDrawnFrameRef = useRef<number>(-1);
