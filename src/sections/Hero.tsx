@@ -85,25 +85,24 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
         setIsLoaded(true); 
       }
 
-      // 2. Load remaining lazily
-      const idleCallback = window.requestIdleCallback || ((cb) => setTimeout(cb, 1));
-      
+      // 2. Load remaining frames continuously in larger chunks
       let currentIndex = criticalFramesCount;
       const loadNextChunk = () => {
         if (isCancelled || currentIndex >= totalFrames) return;
         
         const chunk = [];
-        const chunkSize = 6; // Balance concurrency
+        const chunkSize = 15; // Increase concurrency for faster loading on HTTP/2
         for (let i = 0; i < chunkSize && currentIndex < totalFrames; i++, currentIndex++) {
           chunk.push(loadFrame(currentIndex));
         }
         
         Promise.all(chunk).then(() => {
-           idleCallback(loadNextChunk);
+           // Continue loading next chunk without waiting for idle time
+           setTimeout(loadNextChunk, 10);
         });
       };
       
-      idleCallback(loadNextChunk);
+      setTimeout(loadNextChunk, 50);
     };
 
     loadSequence();
