@@ -81,7 +81,17 @@ export const TransitionProvider = ({ children }: { children: React.ReactNode }) 
          window.history.pushState({}, '', to);
          const targetEl = document.getElementById(hash);
          if (targetEl) {
+           // Temporarily disable GSAP normalizeScroll so native smooth scrolling works
+           // @ts-ignore
+           if (window.ScrollTrigger) window.ScrollTrigger.normalizeScroll(false);
+           
            targetEl.scrollIntoView({ behavior: "smooth" });
+           
+           // Re-enable after smooth scroll completes
+           setTimeout(() => {
+             // @ts-ignore
+             if (window.ScrollTrigger) window.ScrollTrigger.normalizeScroll(true);
+           }, 1000);
          }
        } else {
          window.scrollTo({ top: 0, behavior: "smooth" });

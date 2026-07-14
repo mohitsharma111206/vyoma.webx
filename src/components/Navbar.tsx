@@ -66,15 +66,21 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [location.pathname]);
 
-  // Lock body scroll when mobile menu is open
+  // Lock body scroll when mobile menu is open and disable GSAP normalizeScroll to fix UI lag
   useEffect(() => {
     if (mobileMenuOpen) {
       document.body.style.overflow = "hidden";
+      // @ts-ignore
+      if (window.ScrollTrigger) window.ScrollTrigger.normalizeScroll(false);
     } else {
       document.body.style.overflow = "unset";
+      // @ts-ignore
+      if (window.ScrollTrigger) window.ScrollTrigger.normalizeScroll(true);
     }
     return () => {
       document.body.style.overflow = "unset";
+      // @ts-ignore
+      if (window.ScrollTrigger) window.ScrollTrigger.normalizeScroll(true);
     };
   }, [mobileMenuOpen]);
 
