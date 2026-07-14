@@ -211,11 +211,11 @@ export default function Navbar() {
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div 
-            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
-            animate={{ opacity: 1, backdropFilter: "blur(20px)" }}
-            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-0 z-40 bg-[#050505]/95 flex flex-col items-center justify-center pointer-events-auto"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="fixed inset-0 z-40 bg-[#050505]/95 backdrop-blur-xl flex flex-col items-center justify-center pointer-events-auto"
           >
             {/* Ambient Background Glow inside Mobile Menu */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -223,34 +223,26 @@ export default function Navbar() {
             </div>
 
             <div className="flex flex-col items-center gap-8 relative z-10 w-full px-6">
-              {navLinks.map((link, idx) => (
-                <motion.a
+              {navLinks.map((link) => (
+                <a
                   key={link.label}
                   href={link.href}
                   onClick={(e) => handleLinkClick(e, link.href, link.label)}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.4, delay: idx * 0.05 + 0.1, ease: [0.16, 1, 0.3, 1] }}
                   className={`text-3xl font-geist tracking-widest transition-colors duration-300 ${
                     activeSection === link.label ? "text-white" : "text-text-secondary hover:text-white"
                   }`}
                 >
                   {link.label}
-                </motion.a>
+                </a>
               ))}
               
-              <motion.a
+              <a
                 href="/#contact"
                 onClick={(e) => handleLinkClick(e, "/#contact", "Contact")}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.4, delay: navLinks.length * 0.05 + 0.15, ease: [0.16, 1, 0.3, 1] }}
-                className="mt-8 px-10 py-4 rounded-full bg-white text-black uppercase tracking-widest text-xs font-geist font-medium shadow-[0_0_20px_rgba(255,255,255,0.15)] flex items-center gap-2 hover:scale-[1.03] transition-transform duration-300"
+                className="mt-8 px-10 py-4 rounded-full bg-white text-black uppercase tracking-widest text-xs font-geist font-medium flex items-center gap-2"
               >
                 Start Your Project <ArrowRight size={16} />
-              </motion.a>
+              </a>
             </div>
           </motion.div>
         )}
