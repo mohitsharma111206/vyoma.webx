@@ -192,8 +192,8 @@ export default function Services() {
   return (
     <section id="services" className="relative w-full pt-48 pb-32 bg-transparent px-6 z-10 overflow-hidden">
       {/* Background ambient lighting */}
-      <div className="absolute right-0 top-1/4 pointer-events-none bg-radial-gradient from-accent-purple/10 to-transparent rounded-full blur-[120px] w-[500px] h-[500px] opacity-40 animate-float-blob" />
-      <div className="absolute left-[-10%] bottom-1/4 pointer-events-none bg-radial-gradient from-accent-purple/5 to-transparent rounded-full blur-[100px] w-96 h-96 opacity-30 animate-float-blob-delayed" />
+      <div className="absolute right-0 top-1/4 pointer-events-none bg-radial-gradient from-accent-purple/10 to-transparent rounded-full blur-[48px] will-change-transform w-[500px] h-[500px] opacity-40 animate-float-blob" />
+      <div className="absolute left-[-10%] bottom-1/4 pointer-events-none bg-radial-gradient from-accent-purple/5 to-transparent rounded-full blur-[48px] will-change-transform w-96 h-96 opacity-30 animate-float-blob-delayed" />
 
       <div className="max-w-6xl mx-auto">
         
