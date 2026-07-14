@@ -331,36 +331,16 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
     }
   }, []);
 
-  const [viewportHeight, setViewportHeight] = useState(0);
-
-  // Lock viewport height on mount to prevent mobile address bar thrashing
-  useEffect(() => {
-    setViewportHeight(window.innerHeight);
-    
-    let lastWidth = window.innerWidth;
-    const handleResize = () => {
-      // Only recalculate on orientation change, not address bar scroll
-      if (window.innerWidth !== lastWidth) {
-        lastWidth = window.innerWidth;
-        setViewportHeight(window.innerHeight);
-      }
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   return (
     <div 
       id="home"
       ref={containerRef} 
-      className="relative w-full bg-transparent"
-      style={{ height: viewportHeight ? `${viewportHeight * 1.5}px` : '150vh' }}
+      className="relative w-full h-[150svh] bg-transparent"
     >
       {/* Pinned Viewport Container */}
       <div 
         ref={pinnedRef}
-        className="w-full overflow-hidden bg-transparent relative"
-        style={{ height: viewportHeight ? `${viewportHeight}px` : '100vh' }}
+        className="w-full h-[100svh] overflow-hidden bg-transparent relative"
       >
         <div 
           ref={logoWrapperRef} 
@@ -371,7 +351,7 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
             className="w-[280px] h-[265px] md:w-[400px] md:h-[378px] block object-contain pointer-events-none select-none relative z-10" 
             style={{
               background: "black",
-              mixBlendMode: "screen",
+              // mixBlendMode: "screen", // PHASE 2 COMPOSITING TEST
               transform: "translateZ(0)"
             }}
           />
