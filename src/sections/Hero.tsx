@@ -13,6 +13,162 @@ interface HeroProps {
   preloaderComplete: boolean;
 }
 
+// --------------------------------------------------
+// UTILS: Hardware Detection
+// --------------------------------------------------
+const getDeviceCapabilities = () => {
+  const hardwareConcurrency = navigator.hardwareConcurrency || 4;
+  // @ts-ignore
+  const deviceMemory = navigator.deviceMemory || 4;
+  
+  const isLowEnd = hardwareConcurrency <= 4 || deviceMemory <= 4;
+  
+  return {
+    isLowEnd,
+    maxConcurrentDownloads: isLowEnd ? 4 : 10,
+    dpr: Math.min(window.devicePixelRatio || 1, isLowEnd ? 2 : 3),
+    cacheWindowSize: isLowEnd ? 40 : 80 // Frames to keep in memory before dropping
+  };
+};
+
+// --------------------------------------------------
+// UTILS: Frame Provider Abstraction
+// --------------------------------------------------
+type FrameType = ImageBitmap | HTMLImageElement | null;
+
+class ImageSequenceProvider {
+  private totalFrames: number;
+  private cache = new Map<number, FrameType>();
+  private loadingQueue = new Set<number>();
+  private activeDownloads = 0;
+  private capabilities = getDeviceCapabilities();
+  private onProgress: (loaded: number) => void;
+  private criticalFramesLoaded = 0;
+  private criticalCount = 20;
+  private basePath = "/Frames/ezgif-frame-";
+
+  constructor(totalFrames: number, onProgress: (p: number) => void) {
+    this.totalFrames = totalFrames;
+    this.onProgress = onProgress;
+  }
+
+  getFrame(index: number): FrameType | undefined {
+    return this.cache.get(index);
+  }
+
+  // Preload priority based on current frame and direction
+  manageCache(currentFrame: number, scrollDirection: number) {
+    // 1. Evict distant frames to save memory
+    const windowHalf = this.capabilities.cacheWindowSize / 2;
+    const minKeep = currentFrame - windowHalf;
+    const maxKeep = currentFrame + windowHalf;
+
+    for (const key of this.cache.keys()) {
+      if (key < minKeep || key > maxKeep) {
+        const frame = this.cache.get(key);
+        // Explicitly close ImageBitmaps to free GPU VRAM immediately
+        if (frame && 'close' in frame) {
+          (frame as ImageBitmap).close();
+        }
+        this.cache.delete(key);
+      }
+    }
+
+    // 2. Queue upcoming frames
+    // Determine priority array based on scroll direction
+    const loadRadius = 25; // How far ahead to look
+    let priorityQueue: number[] = [];
+
+    if (scrollDirection >= 0) {
+      for (let i = currentFrame; i <= currentFrame + loadRadius && i < this.totalFrames; i++) {
+        if (!this.cache.has(i) && !this.loadingQueue.has(i)) priorityQueue.push(i);
+      }
+    } else {
+      for (let i = currentFrame; i >= currentFrame - loadRadius && i >= 0; i--) {
+        if (!this.cache.has(i) && !this.loadingQueue.has(i)) priorityQueue.push(i);
+      }
+    }
+
+    priorityQueue.forEach(idx => this.loadingQueue.add(idx));
+    this.processQueue();
+  }
+
+  private processQueue() {
+    if (this.activeDownloads >= this.capabilities.maxConcurrentDownloads || this.loadingQueue.size === 0) return;
+
+    // Grab highest priority (first in set, which was added in directional order)
+    const nextIndex = this.loadingQueue.keys().next().value;
+    if (nextIndex === undefined) return;
+    this.loadingQueue.delete(nextIndex);
+
+    this.activeDownloads++;
+    
+    this.downloadAndDecode(nextIndex).finally(() => {
+      this.activeDownloads--;
+      this.processQueue();
+    });
+  }
+
+  private async downloadAndDecode(index: number): Promise<void> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const frameStr = String(index + 1).padStart(3, "0");
+      img.src = `${this.basePath}${frameStr}.jpg`;
+
+      img.onload = async () => {
+        try {
+          // Offscreen decode using ImageBitmap if supported
+          if (window.createImageBitmap) {
+            const bitmap = await window.createImageBitmap(img);
+            this.cache.set(index, bitmap);
+          } else {
+            await img.decode();
+            this.cache.set(index, img);
+          }
+        } catch (e) {
+          this.cache.set(index, img);
+        }
+
+        if (index < this.criticalCount) {
+          this.criticalFramesLoaded++;
+          this.onProgress(Math.round((this.criticalFramesLoaded / this.criticalCount) * 100));
+        }
+        resolve();
+      };
+
+      img.onerror = () => {
+         // Fail silently but resolve queue
+         resolve();
+      };
+    });
+  }
+
+  // Preload initial batch
+  async preloadCritical() {
+    for (let i = 0; i < this.criticalCount; i++) {
+      this.loadingQueue.add(i);
+    }
+    // Boost concurrency for initial load to get to TTI faster
+    const originalConcurrency = this.capabilities.maxConcurrentDownloads;
+    this.capabilities.maxConcurrentDownloads = 15;
+    this.processQueue();
+    
+    // Simple poll until critical are loaded
+    return new Promise<void>((resolve) => {
+      const check = setInterval(() => {
+        if (this.criticalFramesLoaded >= this.criticalCount) {
+          clearInterval(check);
+          this.capabilities.maxConcurrentDownloads = originalConcurrency;
+          resolve();
+        }
+      }, 50);
+    });
+  }
+}
+
+// --------------------------------------------------
+// HERO COMPONENT
+// --------------------------------------------------
 export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }: HeroProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const pinnedRef = useRef<HTMLDivElement>(null);
@@ -25,152 +181,165 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
   const [isScrolledDown, setIsScrolledDown] = useState(false);
 
   const totalFrames = 300;
-  const framesRef = useRef<(HTMLCanvasElement | ImageBitmap | HTMLImageElement | null)[]>(new Array(totalFrames).fill(null));
+  
+  // Animation state (mutated directly for performance)
+  const animState = useRef({
+    currentFrame: 0,
+    targetFrame: 0,
+    lastDrawnFrame: -1,
+    scrollDirection: 1, // 1 for down, -1 for up
+    isVisible: true
+  });
 
+  const providerRef = useRef<ImageSequenceProvider | null>(null);
+  const rAFRef = useRef<number | null>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
-  const lastDrawnFrameRef = useRef<number>(-1);
 
-  // 1. Preload and alpha-mask JPG sequence efficiently
+  // 1. Initialize Provider & Critical Load
   useEffect(() => {
-    let loadedCount = 0;
-    let isCancelled = false;
-    const criticalFramesCount = 20;
-
-    const loadFrame = (index: number): Promise<void> => {
-      return new Promise((resolve) => {
-        if (framesRef.current[index]) return resolve(); // Skip if already loaded
-        
-        const img = new Image();
-        const frameStr = String(index + 1).padStart(3, "0");
-        img.src = `/Frames/ezgif-frame-${frameStr}.jpg`;
-
-        img.onload = async () => {
-          if (isCancelled) return resolve();
-          try {
-            // Force browser to decode image (prevent draw stall), but let it manage VRAM
-            await img.decode();
-            framesRef.current[index] = img;
-          } catch (e) {
-            framesRef.current[index] = img; // Fallback silently
-          }
-          loadedCount++;
-          if (index < criticalFramesCount && !isCancelled) { 
-            setLoadProgress(Math.round((loadedCount / criticalFramesCount) * 100));
-          }
-          resolve();
-        };
-
-        img.onerror = () => {
-           loadedCount++;
-           resolve();
-        };
-      });
-    };
-
-    const loadSequence = async () => {
-      // 1. Load initial critical frames
-      const initialBatch = [];
-      for (let i = 0; i < criticalFramesCount; i++) {
-        initialBatch.push(loadFrame(i));
-      }
-      await Promise.all(initialBatch);
-      
-      if (!isCancelled) {
-        setLoaded(true);
-        setIsLoaded(true); 
-      }
-
-      // 2. Load remaining frames continuously in larger chunks
-      let currentIndex = criticalFramesCount;
-      const loadNextChunk = () => {
-        if (isCancelled || currentIndex >= totalFrames) return;
-        
-        const chunk = [];
-        const chunkSize = 15; // Increase concurrency for faster loading on HTTP/2
-        for (let i = 0; i < chunkSize && currentIndex < totalFrames; i++, currentIndex++) {
-          chunk.push(loadFrame(currentIndex));
-        }
-        
-        Promise.all(chunk).then(() => {
-           // Continue loading next chunk without waiting for idle time
-           setTimeout(loadNextChunk, 10);
-        });
-      };
-      
-      setTimeout(loadNextChunk, 50);
-    };
-
-    loadSequence();
+    providerRef.current = new ImageSequenceProvider(totalFrames, setLoadProgress);
+    
+    providerRef.current.preloadCritical().then(() => {
+      setLoaded(true);
+      setIsLoaded(true);
+    });
 
     return () => {
-      isCancelled = true;
+      if (rAFRef.current) cancelAnimationFrame(rAFRef.current);
     };
   }, [setLoadProgress, setIsLoaded]);
 
-  // Draw specific processed frame on main canvas
-  const drawFrame = useCallback((index: number) => {
+  // 2. Setup Canvas Context
+  useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    let ctx = ctxRef.current;
-    if (!ctx) {
-      // Use alpha: false for huge perf boost, and desynchronized for low latency
-      ctx = canvas.getContext("2d", { alpha: false, desynchronized: true }) as CanvasRenderingContext2D;
-      ctxRef.current = ctx;
+    if (!canvas || !loaded) return;
+
+    // Use desynchronized for lower latency, alpha false for faster blending
+    const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true }) as CanvasRenderingContext2D;
+    ctxRef.current = ctx;
+
+    const capabilities = getDeviceCapabilities();
+    canvas.width = 512 * capabilities.dpr;
+    canvas.height = 484 * capabilities.dpr;
+
+    // Initial draw
+    drawFrame(0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded]);
+
+  // 3. Render Loop (rAF)
+  const drawFrame = useCallback((index: number) => {
+    const ctx = ctxRef.current;
+    const canvas = canvasRef.current;
+    const provider = providerRef.current;
+    if (!ctx || !canvas || !provider) return;
+
+    let targetIdx = index;
+    // Fallback to nearest loaded frame if scrolling faster than network
+    while (!provider.getFrame(targetIdx) && targetIdx > 0) {
+      targetIdx--;
     }
-    if (!ctx) return;
 
-    let targetIndex = index;
-    while (!framesRef.current[targetIndex] && targetIndex > 0) {
-       targetIndex--;
-    }
+    if (animState.current.lastDrawnFrame === targetIdx) return; // Avoid redundant redraws
 
-    if (lastDrawnFrameRef.current === targetIndex) return; // Skip redundant draw
-
-    const frame = framesRef.current[targetIndex];
+    const frame = provider.getFrame(targetIdx);
     if (frame) {
-      // No clearRect needed because alpha: false and JPGs are fully opaque
       ctx.drawImage(frame as CanvasImageSource, 0, 0, canvas.width, canvas.height);
-      lastDrawnFrameRef.current = targetIndex;
+      animState.current.lastDrawnFrame = targetIdx;
     }
   }, []);
 
-  // Draw first frame as soon as loaded
-  useEffect(() => {
-    if (loaded && canvasRef.current) {
-      const canvas = canvasRef.current;
-      canvas.width = 512;
-      canvas.height = 484;
-      drawFrame(0);
-    }
-  }, [loaded, drawFrame]);
+  const renderLoop = useCallback(() => {
+    if (!animState.current.isVisible) return;
 
-  // 2. Set up ScrollTrigger timeline (uses passive listener underneath by GSAP)
+    const state = animState.current;
+
+    // Linear interpolation for smooth Apple-like inertia
+    // Faster lerp if delta is large, otherwise it feels sluggish
+    const diff = state.targetFrame - state.currentFrame;
+    if (Math.abs(diff) > 0.1) {
+      state.currentFrame += diff * 0.15; // Interpolation factor
+    } else {
+      state.currentFrame = state.targetFrame;
+    }
+
+    const roundedFrame = Math.round(state.currentFrame);
+    
+    // Inform provider of current position for memory management
+    providerRef.current?.manageCache(roundedFrame, state.scrollDirection);
+
+    // Draw
+    drawFrame(roundedFrame);
+
+    rAFRef.current = requestAnimationFrame(renderLoop);
+  }, [drawFrame]);
+
+  // Manage visibility to pause render loop
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !loaded) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      const isIntersecting = entries[0].isIntersecting;
+      animState.current.isVisible = isIntersecting;
+      
+      if (isIntersecting && !rAFRef.current) {
+        rAFRef.current = requestAnimationFrame(renderLoop);
+      } else if (!isIntersecting && rAFRef.current) {
+        cancelAnimationFrame(rAFRef.current);
+        rAFRef.current = null;
+      }
+    }, { rootMargin: "200px" });
+
+    observer.observe(container);
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && rAFRef.current) {
+        cancelAnimationFrame(rAFRef.current);
+        rAFRef.current = null;
+      } else if (!document.hidden && animState.current.isVisible) {
+        rAFRef.current = requestAnimationFrame(renderLoop);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (rAFRef.current) cancelAnimationFrame(rAFRef.current);
+    };
+  }, [loaded, renderLoop]);
+
+  // 4. GSAP ScrollTrigger Integration
   useEffect(() => {
     if (!preloaderComplete || !loaded || !containerRef.current || !pinnedRef.current || !textWrapperRef.current) return;
 
+    // The GSAP timeline just updates targetFrame, it does not draw!
     const tl = gsap.timeline({
       scrollTrigger: {
         trigger: containerRef.current,
         start: "top top",
         end: "bottom bottom",
-        scrub: 1, // Increased from 0.1 for Apple-like 60fps smooth inertia
+        scrub: 0, // We handle inertia manually in rAF loop
         pin: pinnedRef.current,
         pinSpacing: true,
         anticipatePin: 1
       }
     });
 
-    const animData = { frame: 0 };
+    const dummy = { frame: 0 };
 
     // 0-80% scroll: Scrub frames
-    tl.to(animData, {
+    tl.to(dummy, {
       frame: totalFrames - 1,
-      snap: "frame",
       ease: "none",
       duration: 8,
       onUpdate: () => {
-        drawFrame(Math.round(animData.frame));
+        const newTarget = dummy.frame;
+        // Calculate direction
+        animState.current.scrollDirection = newTarget > animState.current.targetFrame ? 1 : -1;
+        animState.current.targetFrame = newTarget;
       }
     }, 0);
 
@@ -182,14 +351,10 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
       ease: "power1.out",
       duration: 2,
       onStart: () => {
-        if (textWrapperRef.current) {
-          textWrapperRef.current.style.pointerEvents = "auto";
-        }
+        if (textWrapperRef.current) textWrapperRef.current.style.pointerEvents = "auto";
       },
       onReverseComplete: () => {
-        if (textWrapperRef.current) {
-          textWrapperRef.current.style.pointerEvents = "none";
-        }
+        if (textWrapperRef.current) textWrapperRef.current.style.pointerEvents = "none";
       }
     }, 8);
 
@@ -197,7 +362,7 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
       tl.scrollTrigger?.kill();
       tl.kill();
     };
-  }, [loaded, preloaderComplete, drawFrame]);
+  }, [loaded, preloaderComplete]);
 
   // Track scroll position passively to hide scroll indicator
   useEffect(() => {
@@ -220,9 +385,7 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
   const handleCTA = useCallback((e: React.MouseEvent<HTMLAnchorElement>, target: string) => {
     e.preventDefault();
     const el = document.querySelector(target);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth" });
-    }
+    if (el) el.scrollIntoView({ behavior: "smooth" });
   }, []);
 
   return (
@@ -231,14 +394,10 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
       ref={containerRef} 
       className="relative w-full h-[150vh] bg-transparent"
     >
-      {/* Pinned Viewport Container */}
       <div 
         ref={pinnedRef}
         className="w-full h-screen overflow-hidden bg-transparent relative"
       >
-        {/* Removed ambient blur completely for maximum mobile performance */}
-
-        {/* 100% Transparent absolute center logo wrapper */}
         <div 
           ref={logoWrapperRef} 
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none z-10 will-change-transform flex items-center justify-center"
@@ -248,13 +407,12 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
             className="w-[280px] h-[265px] md:w-[400px] md:h-[378px] block object-contain pointer-events-none select-none relative z-10" 
             style={{
               background: "black",
-              mixBlendMode: "screen", // Compositor-level blending (extremely fast)
+              mixBlendMode: "screen", // GPU Compositor blending
               transform: "translateZ(0)" // Force GPU layer
             }}
           />
         </div>
 
-        {/* Text reveal container (centered, absolute underneath logo) */}
         <div 
           ref={textWrapperRef} 
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl px-6 flex flex-col items-center justify-center text-center opacity-0 pointer-events-none select-none z-10 will-change-transform"
@@ -283,12 +441,10 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
             Premium Websites Built to Drive Growth.
           </h2>
 
-          {/* Description */}
           <p className="max-w-xl text-sm md:text-base text-text-secondary leading-relaxed tracking-wide mb-10 font-light mt-4 mx-auto">
             We engineer high-performance digital experiences that elevate your brand and convert visitors into customers.
           </p>
 
-          {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mt-4 w-full px-2">
             <Magnetic range={30} strength={0.35}>
               <a
@@ -312,7 +468,6 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
           </div>
         </div>
 
-        {/* Animated Scroll Indicator */}
         <div 
           ref={scrollIndicatorRef}
           className={`absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-text-secondary/40 text-[9px] uppercase tracking-[0.3em] font-geist pointer-events-none transition-opacity duration-500 will-change-transform ${
