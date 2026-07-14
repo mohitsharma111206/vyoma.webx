@@ -47,14 +47,9 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
         img.onload = async () => {
           if (isCancelled) return resolve();
           try {
-            if (window.createImageBitmap) {
-              const bitmap = await window.createImageBitmap(img);
-              framesRef.current[index] = bitmap;
-            } else {
-              // Fallback for older browsers: force async decode
-              await img.decode();
-              framesRef.current[index] = img;
-            }
+            // Force browser to decode image (prevent draw stall), but let it manage VRAM
+            await img.decode();
+            framesRef.current[index] = img;
           } catch (e) {
             framesRef.current[index] = img; // Fallback silently
           }
@@ -241,8 +236,7 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
         ref={pinnedRef}
         className="w-full h-screen overflow-hidden bg-transparent relative"
       >
-        {/* Soft Ambient lighting in background */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none bg-radial-gradient from-accent-purple/10 to-transparent rounded-full blur-[100px] w-[500px] h-[500px] opacity-35 z-0 will-change-transform" />
+        {/* Removed ambient blur completely for maximum mobile performance */}
 
         {/* 100% Transparent absolute center logo wrapper */}
         <div 
