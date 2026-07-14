@@ -27,7 +27,8 @@ const getDeviceCapabilities = () => {
     isLowEnd,
     maxConcurrentDownloads: isLowEnd ? 4 : 10,
     dpr: Math.min(window.devicePixelRatio || 1, isLowEnd ? 2 : 3),
-    cacheWindowSize: isLowEnd ? 40 : 80 // Frames to keep in memory before dropping
+    // Give mobile a decent cache window so rapid scrolling doesn't instantly evict needed frames
+    cacheWindowSize: isLowEnd ? 60 : 120 
   };
 };
 
@@ -46,6 +47,7 @@ class ImageSequenceProvider {
   private criticalFramesLoaded = 0;
   private criticalCount = 20;
   private basePath = "/Frames/ezgif-frame-";
+  public currentFrameContext = 0; // Tracked to prioritize downloads
 
   constructor(totalFrames: number, onProgress: (p: number) => void) {
     this.totalFrames = totalFrames;
@@ -56,13 +58,19 @@ class ImageSequenceProvider {
     return this.cache.get(index);
   }
 
+  getLoadedKeys(): number[] {
+    return Array.from(this.cache.keys());
+  }
+
   // Preload priority based on current frame and direction
   manageCache(currentFrame: number, scrollDirection: number) {
-    // 1. Evict distant frames to save memory
-    const windowHalf = this.capabilities.cacheWindowSize / 2;
-    const minKeep = currentFrame - windowHalf;
-    const maxKeep = currentFrame + windowHalf;
+    this.currentFrameContext = currentFrame;
 
+    const windowHalf = this.capabilities.cacheWindowSize / 2;
+    const minKeep = Math.max(0, currentFrame - windowHalf);
+    const maxKeep = Math.min(this.totalFrames - 1, currentFrame + windowHalf);
+
+    // 1. Evict distant frames to save memory
     for (const key of this.cache.keys()) {
       if (key < minKeep || key > maxKeep) {
         const frame = this.cache.get(key);
@@ -74,39 +82,59 @@ class ImageSequenceProvider {
       }
     }
 
-    // 2. Queue upcoming frames
-    // Determine priority array based on scroll direction
-    const loadRadius = 25; // How far ahead to look
-    let priorityQueue: number[] = [];
-
-    if (scrollDirection >= 0) {
-      for (let i = currentFrame; i <= currentFrame + loadRadius && i < this.totalFrames; i++) {
-        if (!this.cache.has(i) && !this.loadingQueue.has(i)) priorityQueue.push(i);
-      }
-    } else {
-      for (let i = currentFrame; i >= currentFrame - loadRadius && i >= 0; i--) {
-        if (!this.cache.has(i) && !this.loadingQueue.has(i)) priorityQueue.push(i);
+    // 2. Prune loading queue to save network bandwidth if user scrolled rapidly past them
+    for (const key of this.loadingQueue) {
+      if (key < minKeep || key > maxKeep) {
+        this.loadingQueue.delete(key);
       }
     }
 
-    priorityQueue.forEach(idx => this.loadingQueue.add(idx));
+    // 3. Queue upcoming frames
+    // Determine priority array based on scroll direction
+    const loadRadius = this.capabilities.isLowEnd ? 20 : 40; 
+    
+    if (scrollDirection >= 0) {
+      for (let i = currentFrame; i <= currentFrame + loadRadius && i < this.totalFrames; i++) {
+        if (!this.cache.has(i) && !this.loadingQueue.has(i)) this.loadingQueue.add(i);
+      }
+    } else {
+      for (let i = currentFrame; i >= currentFrame - loadRadius && i >= 0; i--) {
+        if (!this.cache.has(i) && !this.loadingQueue.has(i)) this.loadingQueue.add(i);
+      }
+    }
+
     this.processQueue();
   }
 
   private processQueue() {
     if (this.activeDownloads >= this.capabilities.maxConcurrentDownloads || this.loadingQueue.size === 0) return;
 
-    // Grab highest priority (first in set, which was added in directional order)
-    const nextIndex = this.loadingQueue.keys().next().value;
-    if (nextIndex === undefined) return;
-    this.loadingQueue.delete(nextIndex);
+    // ALWAYS pick the frame closest to the user's current scroll position first!
+    let closestIndex = -1;
+    let minDistance = Infinity;
+
+    for (const idx of this.loadingQueue) {
+      const dist = Math.abs(idx - this.currentFrameContext);
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestIndex = idx;
+      }
+    }
+
+    if (closestIndex === -1) return;
+    this.loadingQueue.delete(closestIndex);
 
     this.activeDownloads++;
     
-    this.downloadAndDecode(nextIndex).finally(() => {
+    this.downloadAndDecode(closestIndex).finally(() => {
       this.activeDownloads--;
-      this.processQueue();
+      this.processQueue(); // Keep pulling from queue
     });
+
+    // Recursively fill concurrent slots
+    if (this.activeDownloads < this.capabilities.maxConcurrentDownloads) {
+      this.processQueue();
+    }
   }
 
   private async downloadAndDecode(index: number): Promise<void> {
@@ -235,18 +263,30 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
     if (!ctx || !canvas || !provider) return;
 
     let targetIdx = index;
-    // Fallback to nearest loaded frame if scrolling faster than network
-    while (!provider.getFrame(targetIdx) && targetIdx > 0) {
-      targetIdx--;
+    let frame = provider.getFrame(targetIdx);
+
+    // If exact frame isn't loaded yet, find the absolute nearest loaded frame
+    // This prevents the animation from "freezing" on an old frame and then jumping
+    if (!frame) {
+      const loadedKeys = provider.getLoadedKeys();
+      let minDistance = Infinity;
+      let closestIdx = animState.current.lastDrawnFrame; // Default to what is already on screen
+
+      for (const k of loadedKeys) {
+        const dist = Math.abs(k - index);
+        if (dist < minDistance) {
+          minDistance = dist;
+          closestIdx = k;
+        }
+      }
+      targetIdx = closestIdx;
+      frame = provider.getFrame(targetIdx);
     }
 
-    if (animState.current.lastDrawnFrame === targetIdx) return; // Avoid redundant redraws
+    if (!frame || animState.current.lastDrawnFrame === targetIdx) return; // Avoid redundant redraws
 
-    const frame = provider.getFrame(targetIdx);
-    if (frame) {
-      ctx.drawImage(frame as CanvasImageSource, 0, 0, canvas.width, canvas.height);
-      animState.current.lastDrawnFrame = targetIdx;
-    }
+    ctx.drawImage(frame as CanvasImageSource, 0, 0, canvas.width, canvas.height);
+    animState.current.lastDrawnFrame = targetIdx;
   }, []);
 
   const renderLoop = useCallback(() => {
