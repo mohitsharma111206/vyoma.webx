@@ -160,7 +160,7 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
         trigger: containerRef.current,
         start: "top top",
         end: "bottom bottom",
-        scrub: 0.1,
+        scrub: 1, // Increased from 0.1 for Apple-like 60fps smooth inertia
         pin: pinnedRef.current,
         pinSpacing: true,
         anticipatePin: 1
@@ -235,7 +235,7 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
     <div 
       id="home"
       ref={containerRef} 
-      className="relative w-full h-[220vh] bg-transparent"
+      className="relative w-full h-[150vh] bg-transparent"
     >
       {/* Pinned Viewport Container */}
       <div 
