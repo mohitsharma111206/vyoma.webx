@@ -256,7 +256,11 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
     if (!preloaderComplete || !loaded || !containerRef.current || !pinnedRef.current || !textWrapperRef.current) return;
 
     // Force touch scrolling onto the main thread to prevent iOS compositor jitter
-    ScrollTrigger.normalizeScroll(true);
+    // We strictly limit this to mobile/touch screens, because normalizeScroll fights with 
+    // desktop trackpads and mousewheels, causing the pinned container to violently "flicker up".
+    if (window.innerWidth < 1024) {
+      ScrollTrigger.normalizeScroll(true);
+    }
 
     const tl = gsap.timeline({
       scrollTrigger: {
