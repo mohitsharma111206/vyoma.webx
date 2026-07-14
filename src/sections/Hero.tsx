@@ -255,6 +255,9 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
   useEffect(() => {
     if (!preloaderComplete || !loaded || !containerRef.current || !pinnedRef.current || !textWrapperRef.current) return;
 
+    // Force touch scrolling onto the main thread to prevent iOS compositor jitter
+    ScrollTrigger.normalizeScroll(true);
+
     const tl = gsap.timeline({
       scrollTrigger: {
         trigger: containerRef.current,
