@@ -248,18 +248,12 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
         <div 
           ref={logoWrapperRef} 
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none z-10 will-change-transform flex items-center justify-center"
-        >
-          {/* Static hardware-accelerated glow (replaces expensive canvas drop-shadow) */}
-          <div className="absolute inset-0 bg-accent-purple/40 blur-[50px] rounded-full scale-[0.6] pointer-events-none" />
-          
           <canvas 
             ref={canvasRef} 
             className="w-[280px] h-[265px] md:w-[400px] md:h-[378px] block object-contain pointer-events-none select-none relative z-10" 
             style={{
               background: "black",
               mixBlendMode: "screen", // Compositor-level blending (extremely fast)
-              WebkitMaskImage: "radial-gradient(closest-side, black 65%, transparent 100%)",
-              maskImage: "radial-gradient(closest-side, black 65%, transparent 100%)",
               transform: "translateZ(0)" // Force GPU layer
             }}
           />
