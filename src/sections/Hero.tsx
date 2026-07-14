@@ -331,16 +331,36 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
     }
   }, []);
 
+  const [viewportHeight, setViewportHeight] = useState(0);
+
+  // Lock viewport height on mount to prevent mobile address bar thrashing
+  useEffect(() => {
+    setViewportHeight(window.innerHeight);
+    
+    let lastWidth = window.innerWidth;
+    const handleResize = () => {
+      // Only recalculate on orientation change, not address bar scroll
+      if (window.innerWidth !== lastWidth) {
+        lastWidth = window.innerWidth;
+        setViewportHeight(window.innerHeight);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   return (
     <div 
       id="home"
       ref={containerRef} 
-      className="relative w-full h-[150vh] bg-transparent"
+      className="relative w-full bg-transparent"
+      style={{ height: viewportHeight ? `${viewportHeight * 1.5}px` : '150vh' }}
     >
       {/* Pinned Viewport Container */}
       <div 
         ref={pinnedRef}
-        className="w-full h-screen overflow-hidden bg-transparent relative"
+        className="w-full overflow-hidden bg-transparent relative"
+        style={{ height: viewportHeight ? `${viewportHeight}px` : '100vh' }}
       >
         <div 
           ref={logoWrapperRef} 
