@@ -242,6 +242,7 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
         <div 
           ref={logoWrapperRef} 
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none z-10 will-change-transform flex items-center justify-center"
+        >
           <canvas 
             ref={canvasRef} 
             className="w-[280px] h-[265px] md:w-[400px] md:h-[378px] block object-contain pointer-events-none select-none relative z-10" 
