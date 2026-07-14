@@ -88,8 +88,8 @@ function Layout() {
         {/* Global background lighting effects */}
         <div className="fixed inset-0 pointer-events-none z-0">
           <div className="absolute inset-0 bg-black/30" />
-          <div className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vh] bg-radial-gradient from-accent-purple/[0.04] to-transparent rounded-full blur-[120px] animate-float-blob" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vh] bg-radial-gradient from-accent-purple/[0.04] to-transparent rounded-full blur-[120px] animate-float-blob-delayed" />
+          <div className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vh] bg-radial-gradient from-accent-purple/[0.04] to-transparent rounded-full blur-[48px] will-change-transform animate-float-blob" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vh] bg-radial-gradient from-accent-purple/[0.04] to-transparent rounded-full blur-[48px] will-change-transform animate-float-blob-delayed" />
         </div>
 
         {/* Main page content (routed) */}
