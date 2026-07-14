@@ -119,7 +119,8 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
     
     let ctx = ctxRef.current;
     if (!ctx) {
-      ctx = canvas.getContext("2d", { alpha: true });
+      // Use alpha: false for huge perf boost, and desynchronized for low latency
+      ctx = canvas.getContext("2d", { alpha: false, desynchronized: true }) as CanvasRenderingContext2D;
       ctxRef.current = ctx;
     }
     if (!ctx) return;
@@ -133,10 +134,8 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
 
     const frame = framesRef.current[targetIndex];
     if (frame) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.globalCompositeOperation = "screen"; // Hardware accelerated alpha
+      // No clearRect needed because alpha: false and JPGs are fully opaque
       ctx.drawImage(frame as CanvasImageSource, 0, 0, canvas.width, canvas.height);
-      ctx.globalCompositeOperation = "source-over"; 
       lastDrawnFrameRef.current = targetIndex;
     }
   }, []);
@@ -248,16 +247,20 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
         {/* 100% Transparent absolute center logo wrapper */}
         <div 
           ref={logoWrapperRef} 
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none z-10 will-change-transform"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none z-10 will-change-transform flex items-center justify-center"
         >
+          {/* Static hardware-accelerated glow (replaces expensive canvas drop-shadow) */}
+          <div className="absolute inset-0 bg-accent-purple/40 blur-[50px] rounded-full scale-[0.6] pointer-events-none" />
+          
           <canvas 
             ref={canvasRef} 
-            className="w-[280px] h-[265px] md:w-[400px] md:h-[378px] block object-contain pointer-events-none select-none" 
+            className="w-[280px] h-[265px] md:w-[400px] md:h-[378px] block object-contain pointer-events-none select-none relative z-10" 
             style={{
-              background: "transparent",
-              filter: "drop-shadow(0 0 35px rgba(168, 85, 247, 0.3))",
+              background: "black",
+              mixBlendMode: "screen", // Compositor-level blending (extremely fast)
               WebkitMaskImage: "radial-gradient(closest-side, black 65%, transparent 100%)",
-              maskImage: "radial-gradient(closest-side, black 65%, transparent 100%)"
+              maskImage: "radial-gradient(closest-side, black 65%, transparent 100%)",
+              transform: "translateZ(0)" // Force GPU layer
             }}
           />
         </div>
