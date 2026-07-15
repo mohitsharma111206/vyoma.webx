@@ -366,10 +366,12 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
 
         {/* Outer wrapper perfectly centers the block horizontally and vertically without GSAP interference */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl z-10 flex flex-col items-center justify-center pointer-events-none">
-          {/* Inner wrapper handles the GSAP animation exclusively */}
+          {/* Inner wrapper handles the GSAP animation exclusively. 
+              The mt-[120px] perfectly counters the height of the paragraphs below it, 
+              forcing the VYOMA title down into the exact center of the screen/logo. */}
           <div 
             ref={textWrapperRef} 
-            className="w-full px-6 flex flex-col items-center justify-center text-center opacity-0 pointer-events-none select-none will-change-transform"
+            className="w-full px-6 flex flex-col items-center justify-center text-center opacity-0 pointer-events-none select-none will-change-transform mt-[120px] md:mt-[150px]"
             style={{ 
               filter: "blur(12px)", 
               transform: "translate3d(0, 50px, 0)"
