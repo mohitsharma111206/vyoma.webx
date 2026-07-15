@@ -366,17 +366,19 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
 
         {/* Outer wrapper perfectly centers the block horizontally and vertically without GSAP interference */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl z-10 flex flex-col items-center justify-center pointer-events-none">
-          {/* Inner wrapper handles the GSAP animation exclusively. 
-              The mt-[120px] perfectly counters the height of the paragraphs below it, 
-              forcing the VYOMA title down into the exact center of the screen/logo. */}
+          {/* Inner wrapper handles the GSAP animation exclusively */}
           <div 
             ref={textWrapperRef} 
-            className="w-full px-6 flex flex-col items-center justify-center text-center opacity-0 pointer-events-none select-none will-change-transform mt-[120px] md:mt-[150px]"
+            className="w-full px-6 flex flex-col items-center justify-center text-center opacity-0 pointer-events-none select-none will-change-transform relative"
             style={{ 
               filter: "blur(12px)", 
               transform: "translate3d(0, 50px, 0)"
             }}
           >
+            {/* Title Row - This is the ONLY element in normal document flow. 
+                This forces the inner wrapper's bounding box to perfectly match the height of this title.
+                Because the Outer Wrapper mathematically centers this bounding box at 50% screen height,
+                the VYOMA title will sit EXACTLY over the center of the logo. */}
             <div className="flex items-center justify-center gap-3 md:gap-4 w-full">
               <span className="text-sm md:text-lg font-light tracking-wide text-white font-geist uppercase mt-0.5 md:mt-1">
                 EST.
@@ -392,34 +394,37 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
               </span>
             </div>
 
-            <h2 className="text-2xl md:text-4xl font-geist font-medium text-white tracking-wide mt-6 mb-2">
-              Premium Websites Built to Drive Growth.
-            </h2>
+            {/* Bottom Content - Absolutely positioned to hang below the title without pushing the title upward */}
+            <div className="absolute top-full left-0 w-full flex flex-col items-center pt-4">
+              <h2 className="text-2xl md:text-4xl font-geist font-medium text-white tracking-wide mt-2 mb-2">
+                Premium Websites Built to Drive Growth.
+              </h2>
 
-            <p className="max-w-xl text-sm md:text-base text-text-secondary leading-relaxed tracking-wide mb-10 font-light mt-4 mx-auto">
-              We engineer high-performance digital experiences that elevate your brand and convert visitors into customers.
-            </p>
+              <p className="max-w-xl text-sm md:text-base text-text-secondary leading-relaxed tracking-wide mb-10 font-light mt-4 mx-auto">
+                We engineer high-performance digital experiences that elevate your brand and convert visitors into customers.
+              </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mt-4 w-full px-2">
-              <Magnetic range={30} strength={0.35}>
-                <a
-                  href="#contact"
-                  onClick={(e) => handleCTA(e, "#contact")}
-                  className="w-full sm:w-auto relative px-6 py-3.5 md:px-8 md:py-4 rounded-full text-[10px] md:text-xs font-geist uppercase tracking-widest text-black bg-white transition-all duration-500 flex items-center justify-center gap-2 cursor-pointer border border-white hover:scale-105 shadow-[0_0_20px_rgba(255,255,255,0.2)] whitespace-nowrap will-change-transform"
-                >
-                  Start Your Project <ArrowUpRight size={16} />
-                </a>
-              </Magnetic>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mt-4 w-full px-2">
+                <Magnetic range={30} strength={0.35}>
+                  <a
+                    href="#contact"
+                    onClick={(e) => handleCTA(e, "#contact")}
+                    className="w-full sm:w-auto relative px-6 py-3.5 md:px-8 md:py-4 rounded-full text-[10px] md:text-xs font-geist uppercase tracking-widest text-black bg-white transition-all duration-500 flex items-center justify-center gap-2 cursor-pointer border border-white hover:scale-105 shadow-[0_0_20px_rgba(255,255,255,0.2)] whitespace-nowrap will-change-transform"
+                  >
+                    Start Your Project <ArrowUpRight size={16} />
+                  </a>
+                </Magnetic>
 
-              <Magnetic range={30} strength={0.35}>
-                <a
-                  href="#services"
-                  onClick={(e) => handleCTA(e, "#services")}
-                  className="w-full sm:w-auto px-6 py-3.5 md:px-8 md:py-4 rounded-full text-[10px] md:text-xs font-geist uppercase tracking-widest text-white transition-all duration-500 flex items-center justify-center gap-2 cursor-pointer border border-white/20 hover:border-white/50 hover:bg-white/5 backdrop-blur-md whitespace-nowrap will-change-transform"
-                >
-                  Explore Solutions
-                </a>
-              </Magnetic>
+                <Magnetic range={30} strength={0.35}>
+                  <a
+                    href="#services"
+                    onClick={(e) => handleCTA(e, "#services")}
+                    className="w-full sm:w-auto px-6 py-3.5 md:px-8 md:py-4 rounded-full text-[10px] md:text-xs font-geist uppercase tracking-widest text-white transition-all duration-500 flex items-center justify-center gap-2 cursor-pointer border border-white/20 hover:border-white/50 hover:bg-white/5 backdrop-blur-md whitespace-nowrap will-change-transform"
+                  >
+                    Explore Solutions
+                  </a>
+                </Magnetic>
+              </div>
             </div>
           </div>
         </div>
