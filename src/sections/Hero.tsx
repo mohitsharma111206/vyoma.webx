@@ -366,22 +366,21 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
 
         <div 
           ref={textWrapperRef} 
-          className="absolute inset-0 mx-auto w-full max-w-4xl px-6 flex flex-col items-center justify-center text-center opacity-0 pointer-events-none select-none z-10 will-change-transform"
+          className="absolute inset-0 mx-auto w-full max-w-4xl px-6 flex flex-col items-center pointer-events-none select-none z-10 will-change-transform"
           style={{ 
             filter: "blur(12px)", 
             transform: "translateY(50px)"
           }}
         >
-          {/* Spacer to push VYOMA down exactly to the center, counterbalancing the text below it */}
-          <div className="h-[200px] md:h-[220px] w-full hidden sm:block shrink-0" />
-          <div className="h-[220px] w-full block sm:hidden shrink-0" />
+          {/* Exact mathematical spacer to place the center of the VYOMA text precisely at 50svh */}
+          <div className="h-[calc(50svh-18px)] md:h-[calc(50svh-30px)] w-full shrink-0" />
           
-          <div className="flex items-center justify-center gap-3 md:gap-4 w-full relative z-20">
+          <div className="flex items-center justify-center gap-3 md:gap-4 w-full relative z-20 leading-none">
             <span className="text-sm md:text-lg font-light tracking-wide text-white font-geist uppercase mt-0.5 md:mt-1">
               EST.
             </span>
             <h1 
-              className="text-4xl md:text-6xl font-bold tracking-tight text-white font-geist uppercase"
+              className="text-4xl md:text-6xl font-bold tracking-tight text-white font-geist uppercase leading-none"
               style={{ textShadow: "0 0 40px rgba(255,255,255,0.4)" }}
             >
               VYOMA
