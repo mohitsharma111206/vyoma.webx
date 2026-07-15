@@ -366,13 +366,17 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
 
         <div 
           ref={textWrapperRef} 
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl px-6 flex flex-col items-center justify-center text-center opacity-0 pointer-events-none select-none z-10 will-change-transform"
+          className="absolute inset-0 mx-auto w-full max-w-4xl px-6 flex flex-col items-center justify-center text-center opacity-0 pointer-events-none select-none z-10 will-change-transform"
           style={{ 
             filter: "blur(12px)", 
-            transform: "translate3d(0, 50px, 0)"
+            transform: "translateY(50px)"
           }}
         >
-          <div className="flex items-center justify-center gap-3 md:gap-4 w-full">
+          {/* Spacer to push VYOMA down exactly to the center, counterbalancing the text below it */}
+          <div className="h-[200px] md:h-[220px] w-full hidden sm:block shrink-0" />
+          <div className="h-[220px] w-full block sm:hidden shrink-0" />
+          
+          <div className="flex items-center justify-center gap-3 md:gap-4 w-full relative z-20">
             <span className="text-sm md:text-lg font-light tracking-wide text-white font-geist uppercase mt-0.5 md:mt-1">
               EST.
             </span>
@@ -387,15 +391,15 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
             </span>
           </div>
 
-          <h2 className="text-2xl md:text-4xl font-geist font-medium text-white tracking-wide mt-6 mb-2">
+          <h2 className="text-2xl md:text-4xl font-geist font-medium text-white tracking-wide mt-6 mb-2 relative z-20">
             Premium Websites Built to Drive Growth.
           </h2>
 
-          <p className="max-w-xl text-sm md:text-base text-text-secondary leading-relaxed tracking-wide mb-10 font-light mt-4 mx-auto">
+          <p className="max-w-xl text-sm md:text-base text-text-secondary leading-relaxed tracking-wide mb-10 font-light mt-4 mx-auto relative z-20">
             We engineer high-performance digital experiences that elevate your brand and convert visitors into customers.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mt-4 w-full px-2">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mt-4 w-full px-2 relative z-20">
             <Magnetic range={30} strength={0.35}>
               <a
                 href="#contact"
