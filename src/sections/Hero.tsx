@@ -398,7 +398,7 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
 
             {/* Bottom Content - Absolutely positioned to hang below the title without pushing the title upward */}
             <div className="absolute top-full left-0 w-full flex flex-col items-center pt-4">
-              <h2 className="text-2xl md:text-4xl font-geist font-medium text-white tracking-wide mt-2 mb-2">
+              <h2 className="text-2xl md:text-4xl font-geist font-medium text-white tracking-wide mt-8 md:mt-12 mb-2">
                 Premium Websites Built to Drive Growth.
               </h2>
 
