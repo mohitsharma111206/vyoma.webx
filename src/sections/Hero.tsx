@@ -386,7 +386,7 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
                 EST.
               </span>
               <h1 
-                className="text-4xl md:text-6xl font-bold tracking-tight text-white font-geist uppercase"
+                className="text-5xl md:text-7xl font-bold tracking-tight text-white font-geist uppercase"
                 style={{ textShadow: "0 0 40px rgba(255,255,255,0.4)" }}
               >
                 VYOMA
