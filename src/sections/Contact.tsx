@@ -109,10 +109,10 @@ export default function Contact() {
   return (
     <section id="contact" className="relative w-full py-32 bg-transparent px-6 z-10 overflow-hidden">
       {/* Premium Background Elements */}
-      <div className="absolute inset-0 bg-grid opacity-30 pointer-events-none mix-blend-screen" />
-      <div className="absolute top-0 right-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] pointer-events-none mix-blend-overlay" />
-      <div className="absolute -left-1/4 top-1/3 pointer-events-none bg-radial-gradient from-accent-purple/10 to-transparent rounded-full blur-[120px] w-[600px] h-[600px] opacity-50 animate-float-blob" />
-      <div className="absolute right-[-10%] bottom-[-10%] pointer-events-none bg-radial-gradient from-blue-500/5 to-transparent rounded-full blur-[100px] w-96 h-96 opacity-40 animate-pulse" />
+      <div className="absolute inset-0 bg-grid opacity-30 pointer-events-none" />
+      <div className="absolute top-0 right-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] pointer-events-none" />
+      <div className="absolute -left-1/4 top-1/3 pointer-events-none bg-radial-gradient from-accent-purple/10 to-transparent rounded-full blur-[48px] w-[300px] h-[300px] opacity-20 animate-float-blob" style={{ willChange: "transform" }} />
+      <div className="absolute right-[-10%] bottom-[-10%] pointer-events-none bg-radial-gradient from-blue-500/5 to-transparent rounded-full blur-[32px] w-48 h-48 opacity-20 animate-pulse" style={{ willChange: "opacity" }} />
 
       {/* Floating Particles Mock */}
       <div className="absolute top-[20%] left-[15%] w-1.5 h-1.5 bg-accent-purple/40 rounded-full blur-[1px] animate-pulse" />

@@ -39,7 +39,7 @@ export default function Testimonials() {
   return (
     <section className="relative w-full py-32 bg-transparent px-6 z-10 overflow-hidden" id="why-choose-us">
       {/* Subtle ambient light behind content */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none bg-radial-gradient from-accent-purple/[0.03] to-transparent rounded-full blur-[120px] w-[800px] h-[800px] opacity-50 animate-float-blob" />
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none bg-radial-gradient from-accent-purple/[0.03] to-transparent rounded-full blur-[48px] w-[400px] h-[400px] opacity-20 animate-float-blob" style={{ willChange: "transform" }} />
 
       <div className="max-w-6xl mx-auto relative z-10">
         
