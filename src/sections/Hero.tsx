@@ -378,9 +378,11 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
             {/* Title Row - This is the ONLY element in normal document flow. 
                 This forces the inner wrapper's bounding box to perfectly match the height of this title.
                 Because the Outer Wrapper mathematically centers this bounding box at 50% screen height,
-                the VYOMA title will sit EXACTLY over the center of the logo. */}
-            <div className="flex items-center justify-center gap-3 md:gap-4 w-full">
-              <span className="text-sm md:text-lg font-light tracking-wide text-white font-geist uppercase mt-0.5 md:mt-1">
+                the VYOMA title will sit EXACTLY over the center of the logo. 
+                NOTE: The spirograph's visual center hole is geometrically lower than its bounding box center. 
+                The mt offsets push the text down to align with the visual hole exactly. */}
+            <div className="flex items-baseline justify-center gap-3 md:gap-4 w-full mt-[45px] md:mt-[60px] ml-[30px] md:ml-[45px]">
+              <span className="text-sm md:text-lg font-light tracking-wide text-white font-geist uppercase">
                 EST.
               </span>
               <h1 
@@ -389,7 +391,7 @@ export default function Hero({ setLoadProgress, setIsLoaded, preloaderComplete }
               >
                 VYOMA
               </h1>
-              <span className="text-sm md:text-lg font-light tracking-wide text-white font-geist uppercase mt-0.5 md:mt-1">
+              <span className="text-sm md:text-lg font-light tracking-wide text-white font-geist uppercase">
                 2026
               </span>
             </div>
